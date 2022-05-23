@@ -153,3 +153,4 @@ cython_debug/
 *.jpg
 *.code-workspace
 .DS_Store
+test.ipynb
