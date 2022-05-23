@@ -54,3 +54,28 @@ def load_image(path):
     return img
 
 
+def palette(clusters):
+    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
+
+    # make the palette display
+    height = 50
+    width = 300
+    palette = np.zeros((height, width, 3), dtype=np.uint8)
+
+    steps = width / clusters.cluster_centers_.shape[0]
+    for i, centers in enumerate(clusters.cluster_centers_): 
+        palette[:, int(i * steps):(int((i + 1) * steps)), :] = centers
+    
+    return palette
+
+
+img = load_image("img/img_1.jpg")
+
+
+# set the clusters
+clstr = KMeans(n_clusters=10) # get top 10 colors
+clstr.fit(img.reshape(-1, 3))
+
+clstr_1 = clstr.fit(img.reshape(-1, 3))
+show_img_and_comparison(img, palette(clstr_1))
+
