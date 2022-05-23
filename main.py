@@ -69,8 +69,56 @@ def palette(clusters):
     return palette
 
 
+def palette_by_percent(k_cluster):
+    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
+    height = 50
+    width = 300
+    palette = np.zeros((height, width, 3), dtype=np.uint8)
+    
+    pixel_count = len(k_cluster.labels_)
+    counter = Counter(k_cluster.labels_)    # count how many pixels per cluster
+    
+    percent = {}
+    for i in counter:
+        percent[i] = np.round(counter[i] / pixel_count, 2)
+
+    percent = dict(sorted(percent.items()))
+
+    hex_list = []
+    step = 0
+    for i, centers in enumerate(k_cluster.cluster_centers_):
+        r = int(k_cluster.cluster_centers_[i][0])
+        g = int(k_cluster.cluster_centers_[i][1])
+        b = int(k_cluster.cluster_centers_[i][2])
+
+        palette[:, step:int(step + percent[i] * width + 1), :] = centers
+        step += int(percent[i] * width + 1) # adjusts width of pallette by percentage
+
+        hex_list.append(rgb_to_hex(r, g, b))
+
+    hex_percent = dict(zip(percent.values(), hex_list))
+    hex_percent_sorted = {i: j for i, j in sorted(hex_percent.items(), key=lambda item:float(item[0]))}
+
+    # logging purposes
+    print(k_cluster.cluster_centers_)
+    # print(percent)
+    # print(hex_list)
+    # print(hex_percent)
+    print(hex_percent_sorted)
+
+    return palette
+
+
+def rgb_to_hex(r, g, b):
+
+    return "#" + ('{:X}{:X}{:X}').format(r, g, b)
+
+
 img = load_image("img/img_1.jpg")
 
+
+clstr_1 = clstr.fit(img.reshape(-1, 3))
+show_img_and_comparison(img, palette_by_percent(clstr_1))
 
 # set the clusters
 clstr = KMeans(n_clusters=10) # get top 10 colors
