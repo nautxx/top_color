@@ -22,3 +22,12 @@ def show_img_and_comparison(img, img_2):
     plt.show()
 
 
+def get_average_color(img):
+    """Finds the average pixel values. Worthless and wrong."""
+
+    img_temp = img.copy()
+    img_temp[:,:,0], img_temp[:,:,1], img_temp[:,:,2] = np.average(img, axis=(0,1)) # R, G, B
+
+    show_img_and_comparison(img, img_temp)
+
+
