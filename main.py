@@ -31,3 +31,13 @@ def get_average_color(img):
     show_img_and_comparison(img, img_temp)
 
 
+def get_highest_pixel(img):
+    """Counts the number of occurrences per pixel value."""
+
+    img_temp = img.copy()
+    unique, counts = np.unique(img_temp.reshape(-1, 3), axis=0, return_counts=True)
+    img_temp[:,:,0], img_temp[:,:,1], img_temp[:,:,2] = unique[np.argmax(counts)]
+
+    show_img_and_comparison(img, img_temp)
+
+
