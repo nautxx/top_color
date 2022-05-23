@@ -41,3 +41,16 @@ def get_highest_pixel(img):
     show_img_and_comparison(img, img_temp)
 
 
+def load_image(path):
+
+    # load the images
+    img = cv.imread(path)
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+    # resize the images
+    dim = (400, 400)    # dimensions of image
+    img = cv.resize(img, dim, interpolation = cv.INTER_AREA)
+
+    return img
+
+
