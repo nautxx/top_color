@@ -152,3 +152,4 @@ cython_debug/
 #.idea/
 *.jpg
 *.code-workspace
+.DS_Store
