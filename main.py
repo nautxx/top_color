@@ -13,7 +13,7 @@ from sklearn.cluster import KMeans  # pip install -U scikit-learn
 from collections import Counter
 import PIL
 
-from forms import *
+from forms import UploadForm
 
 
 app = Flask(__name__)
