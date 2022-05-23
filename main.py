@@ -148,6 +148,12 @@ def home():
     return render_template("index.html")
 
 
+@app.route('/upload', methods=["GET", "POST"])
+def upload_image():
+    form = UploadForm()
+    return
+
+
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=6194)
     app.run(debug=True)
