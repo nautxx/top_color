@@ -128,13 +128,15 @@ def palette_by_percent(k_cluster):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
+        prog='Top Color',
         description='A simple python script to get the most common colors of an image file.'
     )
-    parser.add_argument("--file_path", "-fp", help="The name of the file to load.", type=str, default="img/img_1.jpg")
+    parser.add_argument("--version", "-v", action='version', version='%(prog)s v1.0.0')
+    parser.add_argument("--file_path", "-fp", help="The filepath and filename of the file to load.", type=str, default="img/img_1.jpg")
     parser.add_argument("--average_color", "-ac", help="Average color.", default=False)
     parser.add_argument("--top_color", "-tc", help="Top color used.", default=False)
     parser.add_argument("--top_colors", "-tcs", help="Top colors used.", default=False)
-    parser.add_argument("--colors", "-c", help="Number of top colors.", type=int, default=5)
+    parser.add_argument("--colors", "-c", help="Number of top colors.", type=int, default=3)
     args = parser.parse_args()
 
 
