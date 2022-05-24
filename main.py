@@ -20,8 +20,10 @@ def load_image(path):
     return img
 
 
-def rgb_to_hex(r, g, b):
+def rgb_to_hex(rgb):
+    """Converts a list of rgb values into hex code."""
 
+    r, g, b = int(rgb[0]), int(rgb[1]), int(rgb[2])
     return "#" + ('{:X}{:X}{:X}').format(r, g, b)
 
 
@@ -49,7 +51,7 @@ def get_average_color(img):
     average_color[:, :, 0], average_color[:, :, 1], average_color[:, :, 2] = np.average(img, axis=(0, 1)) # R, G, B
 
     average_color_pixel = average_color[0][0]
-    average_color_pixel_hex = rgb_to_hex(average_color_pixel[0], average_color_pixel[1], average_color_pixel[2])
+    average_color_pixel_hex = rgb_to_hex(average_color_pixel)
     
     print(f"Average color: {average_color_pixel_hex}")
 
@@ -64,7 +66,7 @@ def get_top_color(img):
     top_color[:, :, 0], top_color[:, :, 1], top_color[:, :, 2] = unique[np.argmax(counts)]
 
     top_color_pixel = top_color[0][0]
-    top_color_pixel_hex = rgb_to_hex(top_color_pixel[0], top_color_pixel[1], top_color_pixel[2])
+    top_color_pixel_hex = rgb_to_hex(top_color_pixel)
     
     print(f"Top color: {top_color_pixel_hex}")
     
@@ -75,8 +77,8 @@ def palette(clusters):
     """Creates an image of 80x250px to display as a pallette assigned for each cluster."""
 
     # make the palette display
-    height = 50
-    width = 500
+    height = 80
+    width = 250
     palette = np.zeros((height, width, 3), dtype=np.uint8)
 
     steps = width / clusters.cluster_centers_.shape[0]
@@ -112,7 +114,7 @@ def palette_by_percent(k_cluster):
         palette[:, step:int(step + percent[i] * width + 1), :] = centers
         step += int(percent[i] * width + 1) # adjusts width of pallette by percentage
 
-        hex_list.append(rgb_to_hex(r, g, b))
+        hex_list.append(rgb_to_hex(k_cluster.cluster_centers_[i]))
 
     hex_percent = dict(zip(percent.values(), hex_list))
     hex_percent_sorted = {
@@ -129,16 +131,23 @@ if __name__ == '__main__':
         description='A simple python script to get the most common colors of an image file.'
     )
     parser.add_argument("--file_path", "-fp", help="The name of the file to load.", type=str, default="img/img_1.jpg")
+    parser.add_argument("--average_color", "-ac", help="Average color.", default=False)
+    parser.add_argument("--top_color", "-tc", help="Top color used.", default=False)
+    parser.add_argument("--top_colors", "-tcs", help="Top colors used.", default=False)
     parser.add_argument("--colors", "-c", help="Number of top colors.", type=int, default=5)
     args = parser.parse_args()
 
-    img = load_image(args.file_path)
 
-    get_average_color(img)
-    get_top_color(img)
+    img = load_image(args.file_path)
 
     # set the clusters
     clstr = KMeans(n_clusters=args.colors)
     clstr_ = clstr.fit(img.reshape(-1, 3))
 
-    show_img_and_comparison(img, palette_by_percent(clstr_))
+
+    if args.average_color:
+        show_img_and_comparison(img, get_average_color(img))
+    if args.top_color:
+        show_img_and_comparison(img, get_top_color(img))
+    if args.top_colors:
+        show_img_and_comparison(img, palette_by_percent(clstr_))
