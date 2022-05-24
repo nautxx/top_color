@@ -1,11 +1,4 @@
-from flask import Flask, render_template, redirect, url_for # pip install Flask
-from flask_wtf import FlaskForm # pip install Flask-WTF
-from wtforms import StringField, SubmitField, SelectField   
-from wtforms.validators import DataRequired, URL
-from flask_bootstrap import Bootstrap   # pip install Flask-Bootstrap 
-from dotenv import load_dotenv  # pip install python-dotenv
-import os
-
+import argparse
 import cv2 as cv    # pip install opencv-python
 import numpy as np  # pip install numpy
 import matplotlib.pyplot as plt # pip install matplotlib
@@ -13,147 +6,129 @@ from sklearn.cluster import KMeans  # pip install -U scikit-learn
 from collections import Counter
 import PIL
 
-from forms import UploadForm
+
+def show_img_and_comparison(img, img_2):
+    """Displays 2 images in comparison (Image x Top Colors). 1 row, 2 columns."""
+
+    # create the layout
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12.5, 12.5))
+
+    # adjust the display properties
+    ax[0].imshow(img)
+    ax[1].imshow(img_2)
+    ax[0].axis('off')   # hide the axis
+    ax[1].axis('off')   # hide the axis
+
+    fig.canvas.manager.set_window_title('Top Color') 
+    fig.tight_layout()
+    plt.show()
 
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-Bootstrap(app)
+def get_average_color(img):
+    """Finds the average pixel values. Worthless and wrong."""
+
+    img_temp = img.copy()
+    img_temp[:, :, 0], img_temp[:, :, 1], img_temp[:, :, 2] = np.average(img, axis=(0, 1)) # R, G, B
+
+    show_img_and_comparison(img, img_temp)
 
 
-# def show_img_and_comparison(img, img_2):
-#     """Displays 2 images in comparison (Image x Top Colors). 1 row, 2 columns."""
+def get_highest_pixel(img):
+    """Counts the number of occurrences per pixel value."""
 
-#     # create the layout
-#     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(20,20))
+    img_temp = img.copy()
+    unique, counts = np.unique(img_temp.reshape(-1, 3), axis=0, return_counts=True)
+    img_temp[:, :, 0], img_temp[:, :, 1], img_temp[:, :, 2] = unique[np.argmax(counts)]
 
-#     # adjust the display properties
-#     ax[0].imshow(img)
-#     ax[1].imshow(img_2)
-#     ax[0].axis('off')   # hide the axis
-#     ax[1].axis('off')   # hide the axis
-
-#     fig.tight_layout()
-#     plt.show()
+    show_img_and_comparison(img, img_temp)
 
 
-# def get_average_color(img):
-#     """Finds the average pixel values. Worthless and wrong."""
+def load_image(path):
 
-#     img_temp = img.copy()
-#     img_temp[:,:,0], img_temp[:,:,1], img_temp[:,:,2] = np.average(img, axis=(0,1)) # R, G, B
+    # load the images
+    img = cv.imread(path)
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
-#     show_img_and_comparison(img, img_temp)
+    # resize the images
+    dim = (500, 500)    # dimensions of image
+    img = cv.resize(img, dim, interpolation = cv.INTER_AREA)
 
-
-# def get_highest_pixel(img):
-#     """Counts the number of occurrences per pixel value."""
-
-#     img_temp = img.copy()
-#     unique, counts = np.unique(img_temp.reshape(-1, 3), axis=0, return_counts=True)
-#     img_temp[:,:,0], img_temp[:,:,1], img_temp[:,:,2] = unique[np.argmax(counts)]
-
-#     show_img_and_comparison(img, img_temp)
+    return img
 
 
-# def load_image(path):
+def palette(clusters):
+    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
 
-#     # load the images
-#     img = cv.imread(path)
-#     img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    # make the palette display
+    height = 50
+    width = 500
+    palette = np.zeros((height, width, 3), dtype=np.uint8)
 
-#     # resize the images
-#     dim = (400, 400)    # dimensions of image
-#     img = cv.resize(img, dim, interpolation = cv.INTER_AREA)
-
-#     return img
-
-
-# def palette(clusters):
-#     """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
-
-#     # make the palette display
-#     height = 50
-#     width = 300
-#     palette = np.zeros((height, width, 3), dtype=np.uint8)
-
-#     steps = width / clusters.cluster_centers_.shape[0]
-#     for i, centers in enumerate(clusters.cluster_centers_): 
-#         palette[:, int(i * steps):(int((i + 1) * steps)), :] = centers
+    steps = width / clusters.cluster_centers_.shape[0]
+    for i, centers in enumerate(clusters.cluster_centers_): 
+        palette[:, int(i * steps):(int((i + 1) * steps)), :] = centers
     
-#     return palette
+    return palette
 
 
-# def palette_by_percent(k_cluster):
-#     """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
-#     height = 50
-#     width = 300
-#     palette = np.zeros((height, width, 3), dtype=np.uint8)
+def palette_by_percent(k_cluster):
+    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
     
-#     pixel_count = len(k_cluster.labels_)
-#     counter = Counter(k_cluster.labels_)    # count how many pixels per cluster
+    height = 50
+    width = 250
+    palette = np.zeros((height, width, 3), dtype=np.uint8)
     
-#     percent = {}
-#     for i in counter:
-#         percent[i] = np.round(counter[i] / pixel_count, 2)
+    pixel_count = len(k_cluster.labels_)
+    counter = Counter(k_cluster.labels_)    # count how many pixels per cluster
+    
+    percent = {}
+    for i in counter:
+        percent[i] = np.round(counter[i] / pixel_count, 2)
 
-#     percent = dict(sorted(percent.items()))
+    percent = dict(sorted(percent.items()))
 
-#     hex_list = []
-#     step = 0
-#     for i, centers in enumerate(k_cluster.cluster_centers_):
-#         r = int(k_cluster.cluster_centers_[i][0])
-#         g = int(k_cluster.cluster_centers_[i][1])
-#         b = int(k_cluster.cluster_centers_[i][2])
+    hex_list = []
+    step = 0
+    for i, centers in enumerate(k_cluster.cluster_centers_):
+        r = int(k_cluster.cluster_centers_[i][0])
+        g = int(k_cluster.cluster_centers_[i][1])
+        b = int(k_cluster.cluster_centers_[i][2])
 
-#         palette[:, step:int(step + percent[i] * width + 1), :] = centers
-#         step += int(percent[i] * width + 1) # adjusts width of pallette by percentage
+        palette[:, step:int(step + percent[i] * width + 1), :] = centers
+        step += int(percent[i] * width + 1) # adjusts width of pallette by percentage
 
-#         hex_list.append(rgb_to_hex(r, g, b))
+        hex_list.append(rgb_to_hex(r, g, b))
 
-#     hex_percent = dict(zip(percent.values(), hex_list))
-#     hex_percent_sorted = {i: j for i, j in sorted(hex_percent.items(), key=lambda item:float(item[0]))}
+    hex_percent = dict(zip(percent.values(), hex_list))
+    hex_percent_sorted = {
+        i: j for i, j in sorted(hex_percent.items(), key=lambda item:float(item[0]))
+    }
 
-#     # logging purposes
-#     print(k_cluster.cluster_centers_)
-#     # print(percent)
-#     # print(hex_list)
-#     # print(hex_percent)
-#     print(hex_percent_sorted)
+    # logging purposes
+    # print(k_cluster.cluster_centers_)
+    # print(percent)
+    # print(hex_list)
+    # print(hex_percent)
+    print(hex_percent_sorted)
 
-#     return palette
-
-
-# def rgb_to_hex(r, g, b):
-
-#     return "#" + ('{:X}{:X}{:X}').format(r, g, b)
-
-
-# img = load_image("img/img_1.jpg")
+    return palette
 
 
-# # set the clusters
-# clstr = KMeans(n_clusters=10) # get top 10 colors
-# clstr.fit(img.reshape(-1, 3))
+def rgb_to_hex(r, g, b):
 
-# clstr_1 = clstr.fit(img.reshape(-1, 3))
-# show_img_and_comparison(img, palette(clstr_1))
-
-# clstr_1 = clstr.fit(img.reshape(-1, 3))
-# show_img_and_comparison(img, palette_by_percent(clstr_1))
-
-# all Flask routes below
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
-@app.route('/upload', methods=["GET", "POST"])
-def upload_image():
-    form = UploadForm()
-    return
+    return "#" + ('{:X}{:X}{:X}').format(r, g, b)
 
 
 if __name__ == '__main__':
-    # app.run(host='0.0.0.0', port=6194)
-    app.run(debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_path", help="The name of the file to load.")
+    parser.add_argument("cluster", help="Cluster size.", type=int, default=10)
+    args = parser.parse_args()
+
+    img = load_image(args.file_path)
+
+    # set the clusters
+    clstr = KMeans(n_clusters=args.cluster) # get top 10 colors
+  
+    clstr_ = clstr.fit(img.reshape(-1, 3))
+    show_img_and_comparison(img, palette_by_percent(clstr_))
