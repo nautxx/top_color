@@ -1,2 +1,2 @@
 # top_color
- A webpage that will get the most common colors of an image uploaded.
+ A simple python script that will get the most common colors of an image file.
