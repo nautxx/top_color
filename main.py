@@ -7,13 +7,31 @@ from collections import Counter
 import PIL
 
 
+def load_image(path):
+
+    # load the image
+    img = cv.imread(path)
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+    # resize the image
+    dim = (500, 500)    # set dimensions of the image
+    img = cv.resize(img, dim, interpolation = cv.INTER_AREA)
+
+    return img
+
+
+def rgb_to_hex(r, g, b):
+
+    return "#" + ('{:X}{:X}{:X}').format(r, g, b)
+
+
 def show_img_and_comparison(img, img_2):
     """Displays 2 images in comparison (Image x Top Colors). 1 row, 2 columns."""
 
     # create the layout
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12.5, 12.5))
 
-    # adjust the display properties
+    # adjust the plot display properties
     ax[0].imshow(img)
     ax[1].imshow(img_2)
     ax[0].axis('off')   # hide the axis
@@ -27,37 +45,34 @@ def show_img_and_comparison(img, img_2):
 def get_average_color(img):
     """Finds the average pixel values. Worthless and wrong."""
 
-    img_temp = img.copy()
-    img_temp[:, :, 0], img_temp[:, :, 1], img_temp[:, :, 2] = np.average(img, axis=(0, 1)) # R, G, B
+    average_color = img.copy()
+    average_color[:, :, 0], average_color[:, :, 1], average_color[:, :, 2] = np.average(img, axis=(0, 1)) # R, G, B
 
-    show_img_and_comparison(img, img_temp)
+    average_color_pixel = average_color[0][0]
+    average_color_pixel_hex = rgb_to_hex(average_color_pixel[0], average_color_pixel[1], average_color_pixel[2])
+    
+    print(f"Average color: {average_color_pixel_hex}")
+
+    return average_color
 
 
-def get_highest_pixel(img):
+def get_top_color(img):
     """Counts the number of occurrences per pixel value."""
 
-    img_temp = img.copy()
-    unique, counts = np.unique(img_temp.reshape(-1, 3), axis=0, return_counts=True)
-    img_temp[:, :, 0], img_temp[:, :, 1], img_temp[:, :, 2] = unique[np.argmax(counts)]
+    top_color = img.copy()
+    unique, counts = np.unique(top_color.reshape(-1, 3), axis=0, return_counts=True)
+    top_color[:, :, 0], top_color[:, :, 1], top_color[:, :, 2] = unique[np.argmax(counts)]
 
-    show_img_and_comparison(img, img_temp)
-
-
-def load_image(path):
-
-    # load the images
-    img = cv.imread(path)
-    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-
-    # resize the images
-    dim = (500, 500)    # dimensions of image
-    img = cv.resize(img, dim, interpolation = cv.INTER_AREA)
-
-    return img
+    top_color_pixel = top_color[0][0]
+    top_color_pixel_hex = rgb_to_hex(top_color_pixel[0], top_color_pixel[1], top_color_pixel[2])
+    
+    print(f"Top color: {top_color_pixel_hex}")
+    
+    return top_color
 
 
 def palette(clusters):
-    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
+    """Creates an image of 80x250px to display as a pallette assigned for each cluster."""
 
     # make the palette display
     height = 50
@@ -72,11 +87,11 @@ def palette(clusters):
 
 
 def palette_by_percent(k_cluster):
-    """Creates an image of 50x300px to display as a pallette assigned for each cluster."""
+    """Creates an image of 80x250px to display as a pallette assigned for each cluster."""
     
-    height = 50
+    height = 80
     width = 250
-    palette = np.zeros((height, width, 3), dtype=np.uint8)
+    palette = np.zeros((height, width, 3), dtype=np.uint8)  # create the palette bar
     
     pixel_count = len(k_cluster.labels_)
     counter = Counter(k_cluster.labels_)    # count how many pixels per cluster
@@ -104,31 +119,26 @@ def palette_by_percent(k_cluster):
         i: j for i, j in sorted(hex_percent.items(), key=lambda item:float(item[0]))
     }
 
-    # logging purposes
-    # print(k_cluster.cluster_centers_)
-    # print(percent)
-    # print(hex_list)
-    # print(hex_percent)
-    print(hex_percent_sorted)
+    print(f"Top colors: {hex_percent_sorted}")
 
     return palette
 
 
-def rgb_to_hex(r, g, b):
-
-    return "#" + ('{:X}{:X}{:X}').format(r, g, b)
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("file_path", help="The name of the file to load.")
-    parser.add_argument("cluster", help="Cluster size.", type=int, default=10)
+    parser = argparse.ArgumentParser(
+        description='A simple python script to get the most common colors of an image file.'
+    )
+    parser.add_argument("--file_path", "-fp", help="The name of the file to load.", type=str, default="img/img_1.jpg")
+    parser.add_argument("--colors", "-c", help="Number of top colors.", type=int, default=5)
     args = parser.parse_args()
 
     img = load_image(args.file_path)
 
+    get_average_color(img)
+    get_top_color(img)
+
     # set the clusters
-    clstr = KMeans(n_clusters=args.cluster) # get top 10 colors
-  
+    clstr = KMeans(n_clusters=args.colors)
     clstr_ = clstr.fit(img.reshape(-1, 3))
+
     show_img_and_comparison(img, palette_by_percent(clstr_))
